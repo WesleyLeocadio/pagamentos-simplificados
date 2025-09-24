@@ -1,6 +1,7 @@
 
 package com.github.wesleyLeocadio.pagamentos_simplificados.domain.user;
 
+import com.github.wesleyLeocadio.pagamentos_simplificados.dtos.UserDTO;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -41,6 +42,16 @@ public class User {
     private UserType userType;
 
     public User() {
+    }
+
+    public User(UserDTO data){
+        this.firstName = data.firstName();
+        this.lastName = data.lastName();
+        this.email = data.email();
+        this.document = data.document();
+        this.password = data.password();
+        this.balance = data.balance();
+        this.userType = data.userType();
     }
 
 }
