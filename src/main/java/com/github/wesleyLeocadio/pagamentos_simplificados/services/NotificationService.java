@@ -21,12 +21,13 @@ public class NotificationService {
 
     public void sendNotification(User user, String message) {
         String email = user.getEmail();
-        NotificationDTO notificationRequest = new NotificationDTO(email, message);
+       /** NotificationDTO notificationRequest = new NotificationDTO(email, message);
         ResponseEntity<String> notificationResponse = restTemplate.postForEntity(notificationUrl, notificationRequest, String.class);
         if(notificationResponse.getStatusCode() != HttpStatus.OK){
             System.out.println("Erro ao enviar notificação para o usuário: " + email);
             throw new RuntimeException("Falha ao enviar notificação para o usuário: " + email);
-        }
+        }*/
+       System.out.println("Notificação enviada para " + email + ": " + message);
 
     }
 }

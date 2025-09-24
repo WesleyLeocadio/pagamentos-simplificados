@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -31,7 +32,10 @@ public class TransactionService {
     @Value("${external.authorize.url}")
     private String authorizeUrl;
 
-    public void createTransaction(TransactionDTO transaction) throws Exception {
+    @Autowired
+    private NotificationService notificationService;
+
+    public Transaction createTransaction(TransactionDTO transaction) throws Exception {
         User sender = userService.findUserById(transaction.senderId());
         User receiver = userService.findUserById(transaction.receiverId());
 
@@ -56,17 +60,38 @@ public class TransactionService {
         this.transactionRepository.save(newTransaction);
         this.userService.saveUser(sender);
         this.userService.saveUser(receiver);
+
+        this.notificationService.sendNotification(sender,"Transação realizada com sucesso");
+        this.notificationService.sendNotification(receiver,"Transação recebida com sucesso");
+
+        return newTransaction;
     }
 
 
-    public boolean authorizeTransaction(User sender, BigDecimal value) {
-        ResponseEntity<Map> response = restTemplate.getForEntity(authorizeUrl, Map.class);
-        if(response.getStatusCode() == HttpStatus.OK){
-            String message =  response.getBody().get("message").toString();
-            return "Autorizado".equalsIgnoreCase(message);
+    public boolean authorizeTransaction(User sender, BigDecimal value) throws Exception {
+        try {
+            ResponseEntity<Map> response = restTemplate.getForEntity(authorizeUrl, Map.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Object dataObj = response.getBody().get("data");
+                if (dataObj instanceof Map<?, ?> dataMap) {
+                    Object authObj = dataMap.get("authorization");
+                    if (authObj instanceof Boolean authBool) {
+                        return authBool;
+                    }
+                }
+            }
+        } catch (HttpClientErrorException ex) {
+            // Tenta ler o corpo da resposta de erro
+            String responseBody = ex.getResponseBodyAsString();
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(responseBody);
+            JsonNode dataNode = root.path("data");
+            JsonNode authNode = dataNode.path("authorization");
+            if (authNode.isBoolean()) {
+                return authNode.asBoolean();
+            }
         }
         return false;
     }
-
 
 }
